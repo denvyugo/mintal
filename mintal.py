@@ -5,6 +5,8 @@ working with DRF application 'rental'
 import abc
 import json
 import requests
+from datetime import datetime as dt
+from datetools import convert_datetime
 from requests.exceptions import HTTPError
 
 BASE_URL = 'http://localhost:8000/api/'
@@ -105,20 +107,77 @@ class Belonging(Thing):
         return f'<Belonging object: Belonging.name = {self._name}>'
 
 
-class Borrow():
+class Borrow(Thing):
     """
     user's borrow class
     """
-    def __init__(self, id, when, what, who, returned):
-        self._id = id
-        self._when = when
-        self._what = what
-        self._who = who
-        self._returned = returned
+    def __init__(self, user):
+        self._user = user
+        self._id = 0
+        self._when = None
+        self._what = None
+        self._who = None
+        self._returned = None
+
+    def load_data(self, data):
+        self._user._load_borrow_data(self, data)
 
     @property
-    def id(self):
-        return self._id
+    def returned(self):
+        return self._returned
+
+    @returned.setter
+    def returned(self, returned_date):
+        if returned_date:
+            dt_return = convert_datetime(returned_date)
+            #if isinstance(returned_date, dt):
+            #    dt_return = returned_date
+            #elif isinstance(returned_date, int):
+            #    dt_return = dt.fromtimestamp(returned_date)
+            #elif isinstance(returned_date, str):
+            #    if 'Z' == returned_date[-1]:
+            #        dt_return = returned_date[:-1]
+            #else:
+            #    print(returned_date)
+            self._returned = dt_return
+
+    @property
+    def when(self):
+        return self._when
+
+    @when.setter
+    def when(self, when_date):
+        if when_date:
+            #if isinstance(when_date, dt):
+            #    self._when = when_date
+            #elif isinstance(when_date, int):
+            #    self._when = dt.fromtimestamp(when_date)
+            #else:
+            #    print(when_date)
+            dt_when = convert_datetime(when_date)
+            self._when = dt_when
+
+    @property
+    def who(self):
+        return self._who
+
+    @who.setter
+    def who(self, to_friend):
+        if isinstance(to_friend, Friend):
+            self._who = to_friend
+        else:
+            raise TypeError('to_friend should be Friend object')
+
+    @property
+    def what(self):
+        return self._what
+
+    @what.setter
+    def what(self, thing):
+        if isinstance(thing, Belonging):
+            self._what = thing
+        else:
+            raise TypeError('thing argument should be Belonging object')
 
 
 class User():
@@ -130,6 +189,7 @@ class User():
         self._username = username
         self._friends = {}
         self._belongings = {}
+        self._borrowings = {}
         self._token = None
 
     def login(self, password):
@@ -165,23 +225,6 @@ class User():
         if reply:
             self._id = int(reply['id'])
             return self._id
-
-    def _load_friend_data(self, friend, data):
-        """
-        load data into concreate friend object
-        """
-        friend.id = data['id']
-        friend.overdue = bool(data['has_overdue'])
-        friend._name = data['name']
-
-    def _load_belonging_data(self, belonging, data):
-        """
-        load data into concreate belonging object
-        """
-        belonging.id = data['id']
-        belonging._name = data['name']
-        if 'is_borrowed' in data:
-            belonging.borrowed = data['is_borrowed']
 
     def _add_thing(self, url, thing):
         """
@@ -239,6 +282,14 @@ class User():
             return things, response.links
 
     # workign with friends
+    def _load_friend_data(self, friend, data):
+        """
+        load data into concreate friend object
+        """
+        friend.id = data['id']
+        friend.overdue = bool(data['has_overdue'])
+        friend._name = data['name']
+
     def get_friends(self):
         """
         get a friends list
@@ -251,7 +302,6 @@ class User():
                 friend = Friend(self)
                 friend.load_data(data)
                 self._friends[friend.id] = friend
-        return self._friends
 
     def get_all_friends(self):
         """
@@ -300,8 +350,19 @@ class User():
         """
         if friend_id in self._friends:
             return self._friends[friend_id]
+        else:
+            raise KeyError('no such key in friends package')
         
     # working with belongings
+    def _load_belonging_data(self, belonging, data):
+        """
+        load data into concreate belonging object
+        """
+        belonging.id = data['id']
+        belonging._name = data['name']
+        if 'is_borrowed' in data:
+            belonging.borrowed = data['is_borrowed']
+
     def get_belongings(self):
         """
         get a belongings list
@@ -313,7 +374,6 @@ class User():
                 belonging = Belonging(self)
                 belonging.load_data(data)
                 self._belongings[belonging._id] = belonging
-        return reply
 
     def get_all_belongings(self):
         """
@@ -345,6 +405,8 @@ class User():
         """
         if belonging_id in self._belongings:
             return self._belongings[belonging_id]
+        else:
+            raise KeyError('no such key in belongings package')
 
     def add_belonging(self, belonging):
         """
@@ -363,6 +425,40 @@ class User():
             return belonging
 
     # working with borowings
+    def _load_borrow_data(self, borrow, data):
+        """
+        load data to borrow object
+        """
+        friend = self.friend_by_id(int(data['to_who']))
+        belonging = self.belonging_by_id(int(data['what']))
+        borrow.id = int(data['id'])
+        borrow.when = data['when']
+        borrow.what = belonging
+        borrow.who = friend
+        borrow.returned = data['returned']
+
+    def get_borrowings(self):
+        """
+        get a borrowings list
+        """
+        url = BASE_URL + URLS['borrowings']
+        response = self._get_data_get(url)
+        reply = response.json()
+        if reply:
+            for data in reply:
+                borrow = Borrow(self)
+                borrow.load_data(data)
+                self._borrowings[borrow.id] = borrow
+
+    def borrow_by_id(self, borrow_id):
+        """
+        get borrow by id from self package borrows
+        """
+        if borrow_id in self._borrowings:
+            return self._borrowings[borrow_id]
+        else:
+            raise KeyError('no such key in borrowings package')
+
     def borrow_to(self, friend, belonging, when=None):
         """
         borrow one thing to friend
@@ -375,19 +471,31 @@ class User():
                 'to_who': friend.id,
                 }
         if when is not None:
-            data['when'] = dt_when
+            data['when'] = when
         reply = self._get_data_post(url, data)
         if reply:
-            #friend = self.friend_by_id(reply['to_who'])
-            #belonging = self.belonging_by_id(reply['what'])
-            borrow = Borrow(
-                id=int(reply['id']),
-                when=reply['when'],
-                what=belonging,
-                who=friend,
-                returned=reply['returned']
-                )
+            borrow = Borrow(self)
+            borrow.load_data(reply)
+            self._borrowings[borrow.id] = borrow
             return borrow
+
+    def borrow_return(self, borrow, when=None):
+        """
+        make a notice when a belonging was returned
+        borrow : Borrow object
+        when : datetime object, if None than returned now
+        """
+        borrow_id = borrow.id
+        if when is None:
+            returned = dt.now()
+        else:
+            returned = when
+        url = f"{BASE_URL}{URLS['borrowings']}{borrow.id}/"
+        data = {'returned': returned}
+        reply = self._get_data_patch(url, data)
+        if reply:
+            borrow.returned = returned
+        
     
     # working with API
     def _get_data_post(self, url, data):
@@ -397,6 +505,21 @@ class User():
                 response = requests.post(url, data=data, headers=auth_header)
             else:
                 response = requests.post(url, data=data)
+            response.raise_for_status()
+        except HTTPError as http_err:
+            print(f'HTTP error ocured {http_err}')
+        except Exception as err:
+            print(f'Unexception error ocured {err}')
+        else:
+           return response.json()
+        
+    def _get_data_patch(self, url, data):
+        try:
+            if self._token:
+                auth_header = {'Authorization': f'Token {self._token}'}
+                response = requests.patch(url, data=data, headers=auth_header)
+            else:
+                response = requests.patch(url, data=data)
             response.raise_for_status()
         except HTTPError as http_err:
             print(f'HTTP error ocured {http_err}')
