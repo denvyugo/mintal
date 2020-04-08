@@ -28,7 +28,11 @@ def test_borrow(get_user):
         when = dt.strptime('2020-01-12 20:15:00', '%Y-%m-%d %H:%M:%S')
         borrow = user_djoser.borrow_to(friend, belonging, when)
         # borrow = user_djoser.borrow_to(friend, belonging)
+        user_djoser.get_borrowings()
+        borrow = user_djoser.borrow_by_id(1)
         assert borrow.id == 1
+        assert dt.strftime(borrow.when, '%Y-%m-%d %H:%M') \
+               == dt.strftime(when, '%Y-%m-%d %H:%M')
 
 def test_borrowed_thing(get_user):
     user_djoser = get_user

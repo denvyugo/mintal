@@ -6,7 +6,7 @@ import abc
 import json
 import requests
 from datetime import datetime as dt
-from datetools import convert_datetime
+from datetools import convert_datetime, local_datetime_string
 from requests.exceptions import HTTPError
 
 BASE_URL = 'http://localhost:8000/api/'
@@ -471,7 +471,9 @@ class User():
                 'to_who': friend.id,
                 }
         if when is not None:
-            data['when'] = when
+            data['when'] = local_datetime_string(when)
+        else:
+            data['when'] = local_datetime_string(dt.now())
         reply = self._get_data_post(url, data)
         if reply:
             borrow = Borrow(self)
@@ -487,14 +489,14 @@ class User():
         """
         borrow_id = borrow.id
         if when is None:
-            returned = dt.now()
+            returned = local_datetime_string(dt.now())
         else:
-            returned = when
+            returned = local_datetime_string(when)
         url = f"{BASE_URL}{URLS['borrowings']}{borrow.id}/"
         data = {'returned': returned}
         reply = self._get_data_patch(url, data)
         if reply:
-            borrow.returned = returned
+            borrow.returned = when
         
     
     # working with API

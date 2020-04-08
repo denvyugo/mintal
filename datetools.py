@@ -1,4 +1,7 @@
 import datetime as dt
+import pytz
+
+TIMEZONE = 'Europe/Moscow'
 
 def daysofmonth(year, month):
     """ get quantity of days in month """
@@ -46,8 +49,15 @@ def convert_datetime(some_datetime):
     elif isinstance(some_datetime, str):
         if 'Z' == some_datetime[-1]:
             dt_string = some_datetime[:-1]
-            dt_return = dt.datetime.fromisoformat(dt_string)
+            dt_utc = pytz.utc.localize(dt.datetime.fromisoformat(dt_string))
+            dt_return = dt_utc.astimezone(pytz.timezone(TIMEZONE))
     else:
         print(some_datetime)
     return dt_return
-                               
+
+def local_datetime_string(some_datetime):
+    """ make isoformat with local timezone """
+    tz = pytz.timezone(TIMEZONE)
+    dta = tz.localize(some_datetime)
+    return dta.isoformat(timespec='microseconds')
+
