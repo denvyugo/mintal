@@ -55,6 +55,35 @@ def test_none_borrow_by_id(get_user):
         with pytest.raises(KeyError):
             borrow = user_djoser.borrow_by_id(2)
 
+def test_borrow_missing(get_user):
+    user_djoser = get_user
+    if user_djoser:
+        user_djoser.get_all_friends()
+        user_djoser.get_all_belongings()
+        borrows = user_djoser.get_missing()
+        print(borrows[0].who.name)
+        assert len(borrows) == 1
+
+def test_borrow_overdue(get_user):
+    user_djoser = get_user
+    if user_djoser:
+        user_djoser.get_all_friends()
+        user_djoser.get_all_belongings()
+        borrows = user_djoser.get_overdue()
+        print(borrows[0].who.name)
+        assert len(borrows) == 1
+
+def test_borrow_friend(get_user):
+    user_djoser = get_user
+    if user_djoser:
+        user_djoser.get_all_friends()
+        user_djoser.get_all_belongings()
+        borrows = user_djoser.get_overdue()
+        friend = borrows[0].who
+        belonging = borrows[0].what.id
+        borrows = user_djoser.friend_borrowings(friend)
+        assert borrows[0].what.id == belonging
+
 def test_borrow_return(get_user):
     user_djoser = get_user
     if user_djoser:

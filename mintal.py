@@ -1,5 +1,6 @@
 """
 working with DRF application 'rental'
+rev.00
 """
 
 import abc
@@ -130,15 +131,6 @@ class Borrow(Thing):
     def returned(self, returned_date):
         if returned_date:
             dt_return = convert_datetime(returned_date)
-            #if isinstance(returned_date, dt):
-            #    dt_return = returned_date
-            #elif isinstance(returned_date, int):
-            #    dt_return = dt.fromtimestamp(returned_date)
-            #elif isinstance(returned_date, str):
-            #    if 'Z' == returned_date[-1]:
-            #        dt_return = returned_date[:-1]
-            #else:
-            #    print(returned_date)
             self._returned = dt_return
 
     @property
@@ -148,12 +140,6 @@ class Borrow(Thing):
     @when.setter
     def when(self, when_date):
         if when_date:
-            #if isinstance(when_date, dt):
-            #    self._when = when_date
-            #elif isinstance(when_date, int):
-            #    self._when = dt.fromtimestamp(when_date)
-            #else:
-            #    print(when_date)
             dt_when = convert_datetime(when_date)
             self._when = dt_when
 
@@ -481,6 +467,55 @@ class User():
             self._borrowings[borrow.id] = borrow
             return borrow
 
+    def get_missing(self):
+        """
+        get borrowings which was borrowed
+        return list of borroinws
+        """
+        url = BASE_URL + URLS['borrowings']
+        params = {'missing': True}
+        response = self._get_data_get(url, params)
+        reply = response.json()
+        if reply:
+            borrowings = []
+            for data in reply:
+                borrow = Borrow(self)
+                borrow.load_data(data)
+                borrowings.append(borrow)
+            return borrowings
+
+    def get_overdue(self):
+        """
+        get borrowings which was borrowed too long
+        return list of borroinws
+        """
+        url = BASE_URL + URLS['borrowings']
+        params = {'overdue': True}
+        response = self._get_data_get(url, params)
+        reply = response.json()
+        if reply:
+            borrowings = []
+            for data in reply:
+                borrow = Borrow(self)
+                borrow.load_data(data)
+                borrowings.append(borrow)
+            return borrowings
+
+    def friend_borrowings(self, friend):
+        """
+        get all friend's borrowings
+        """
+        url = f"{BASE_URL}{URLS['friends']}{friend.id}/borrowings/"
+        response = self._get_data_get(url)
+        reply = response.json()
+        if reply:
+            borrowings = []
+            for data in reply:
+                borrow = Borrow(self)
+                borrow.load_data(data)
+                borrowings.append(borrow)
+            return borrowings
+
     def borrow_return(self, borrow, when=None):
         """
         make a notice when a belonging was returned
@@ -548,7 +583,5 @@ class User():
             except Exception as err:
                 print(f'Unexception error ocured {err}')
             else:
-                # print(response.links)
-                # print(response.json())
                 return response
 
