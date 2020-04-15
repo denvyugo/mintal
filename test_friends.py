@@ -10,8 +10,8 @@ def get_user():
     """
     get user object by name, password for working
     """
-    user = User('djoser')
-    if user.login('alpine12'):
+    user = User()
+    if user.login('djoser', 'alpine12'):
         return user
 
 def test_add_friend_object(get_user):
@@ -55,4 +55,9 @@ def test_get_page_friends(get_user):
     assert len(friends) == PAGE_NUMBER
     assert 'next' in links
     assert 'friends' in links['next']['url']
+
+def test_friend_by_id(get_user):
+    user_djoser = get_user
+    friend = user_djoser.friend_by_id(1)
+    assert friend.name == 'John Doe'
     

@@ -13,8 +13,8 @@ def get_user():
     """
     get user object by name, password for working
     """
-    user = User('djoser')
-    if user.login('alpine12'):
+    user = User()
+    if user.login('djoser', 'alpine12'):
         return user
 
 def test_borrow(get_user):
