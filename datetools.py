@@ -4,7 +4,7 @@ import pytz
 TIMEZONE = 'Europe/Moscow'
 
 def daysofmonth(year, month):
-    """ get quantity of days in month """
+    """get quantity of days in month."""
     delta = dt.timedelta(days=1)
     if month == 12:
         new_date = dt.date(year + 1, 1, 1) - delta
@@ -14,7 +14,7 @@ def daysofmonth(year, month):
         
 
 def datesub_month(monthsub, dateinit=None):
-    """" substract whole quantity on month from initial date """
+    """"subtraction whole quantity on month from initial date."""
     if dateinit is None:
         dateinit = dt.datetime.today()
     year = dateinit.year
@@ -35,12 +35,11 @@ def datesub_month(monthsub, dateinit=None):
                 
         # check if new day within first and last day in month
         days = daysofmonth(year_sub, month_sub)
-        if day > days: day_sub = days    
-
-    return dt.datetime(year_sub, month_sub, day_sub, hour, minute, second, micro)
+        if day > days: day_sub = days
+        return dt.datetime(year_sub, month_sub, day_sub, hour, minute, second, micro)
 
 def convert_datetime(some_datetime):
-    """ convert datetime from some format to datetime """
+    """convert datetime from some format to datetime."""
     dt_return = None
     if isinstance(some_datetime, dt.datetime):
         dt_return = some_datetime
@@ -56,8 +55,11 @@ def convert_datetime(some_datetime):
     return dt_return
 
 def local_datetime_string(some_datetime):
-    """ make isoformat with local timezone """
+    """ make ISO format with local timezone."""
     tz = pytz.timezone(TIMEZONE)
-    dta = tz.localize(some_datetime)
+    if some_datetime.tzinfo is None:
+        dta = tz.localize(some_datetime)
+    else:
+        dta = some_datetime.astimezone(tz)
     return dta.isoformat(timespec='microseconds')
 

@@ -4,10 +4,11 @@ rev.01
 """
 
 import abc
-import requests
 from datetime import datetime as dt
-from datetools import convert_datetime, local_datetime_string
+import requests
 from requests.exceptions import HTTPError
+from datetools import convert_datetime, local_datetime_string
+
 
 BASE_URL = 'http://localhost:8000/api/'
 
@@ -18,6 +19,7 @@ URLS = {
     }
 
 class Thing(metaclass=abc.ABCMeta):
+    """abstract class for things in application."""
     def __init__(self, user, name=''):
         self._id = 0
         self._user = user
@@ -34,26 +36,27 @@ class Thing(metaclass=abc.ABCMeta):
                 self._id = id_number
         else:
             raise TypeError("the argument 'id' should be positive integer")
-        
+
     @property
     def name(self):
         return self._name
 
     @abc.abstractmethod
     def load_data(self, data):
-        """
-        load data from database into object
-        """
-        pass        
+        """load data from database into object."""
 
 
 class Friend(Thing):
-    """
-    user's friend class
-    """
+    """user's friend class."""
     def __init__(self, user, name=''):
         super().__init__(user, name)
         self._overdue = False
+
+    def __str__(self):
+        return f'Friend: {self._name}'
+
+    def __repr__(self):
+        return f'<Friend object: Friend.name = {self._name}>'
 
     def load_data(self, data):
         self._user._load_friend_data(self, data)
@@ -69,21 +72,19 @@ class Friend(Thing):
         else:
             bool_overdue = bool(has_overdue)
             self._overdue = bool_overdue
-        
-    def __str__(self):
-        return f'Friend: {self._name}'
-
-    def __repr__(self):
-        return f'<Friend object: Friend.name = {self._name}>'
 
 
 class Belonging(Thing):
-    """
-    user's belonging class
-    """
+    """user's belonging class."""
     def __init__(self, user, name=''):
         super().__init__(user, name)
         self._borrowed = False
+
+    def __str__(self):
+        return f'Belonging: {self._name}'
+
+    def __repr__(self):
+        return f'<Belonging object: Belonging.name = {self._name}>'
 
     def load_data(self, data):
         self._user._load_belonging_data(self, data)
@@ -99,21 +100,12 @@ class Belonging(Thing):
         else:
             bool_borrowed = bool(is_borrowed)
             self._borrowed = bool_borrowed
-    
-    def __str__(self):
-        return f'Belonging: {self._name}'
-
-    def __repr__(self):
-        return f'<Belonging object: Belonging.name = {self._name}>'
 
 
 class Borrow(Thing):
-    """
-    user's borrow class
-    """
-    def __init__(self, user):
-        self._user = user
-        self._id = 0
+    """user's borrow class."""
+    def __init__(self, user, name=''):
+        super().__init__(user, name)
         self._when = None
         self._what = None
         self._who = None
@@ -166,11 +158,10 @@ class Borrow(Thing):
 
 
 class User:
-    """
-    user class for working with 'rental'
-    """
-        
+    """user class for working with 'rental'."""
+
     def __init__(self):
+        self._id = 0
         self._username = ''
         self._friends = {}
         self._belongings = {}
@@ -178,9 +169,7 @@ class User:
         self._token = None
 
     def login(self, username, password):
-        """
-        get token
-        """
+        """get token."""
         url = BASE_URL + 'auth/token/login/'
         self._username = username
         data = {
@@ -193,18 +182,14 @@ class User:
             return self._token
 
     def logout(self):
-        """
-        user logout
-        """
+        """user logout."""
         url = BASE_URL + 'auth/token/logout/'
         self._get_data_post(url)
         self._token = None
         return self._token
 
     def register(self, username, password):
-        """
-        register new user
-        """
+        """register new user."""
         url = BASE_URL + 'auth/users/'
         self._username = username
         data = {
@@ -225,9 +210,7 @@ class User:
         self._token = token_value
 
     def _create_thing(self, thing):
-        """
-        create an instance of concreate thing object
-        """
+        """create an instance of specific thing object."""
         if thing.lower() == 'friend':
             thing_object = Friend(self)
         elif thing.lower() == 'belonging':
@@ -240,9 +223,7 @@ class User:
         return thing_object
 
     def _add_thing(self, url, thing):
-        """
-        add thing object (friend, belonging)
-        """
+        """add thing object (friend, belonging)."""
         data = {'name': thing.name}
         reply = self._get_data_post(url, data)
         if reply:
@@ -251,9 +232,10 @@ class User:
 
     def _get_all_things(self, url, package, thing):
         """
-        get a list of Thing (friend, belonging)
+        get a list of Thing (friend, belonging).
+
         url : API request
-        collection : dict of objects of things
+        package : dict of objects of things
         thing : str name of object (friend, belonging)
         """
         while url:
@@ -269,12 +251,9 @@ class User:
             if links:
                 if 'next' in links:
                     url = links['next']['url']
-        return reply
 
     def _get_thing(self, url, package, thing):
-        """
-        get a one thing by url
-        """
+        """get a one thing by url."""
         response = self._get_data_get(url)
         if response:
             reply = response.json()
@@ -284,9 +263,7 @@ class User:
             return thing_object
 
     def _get_page_things(self, url, package, thing):
-        """
-        get a list of Thing (friend, belonging) and a links
-        """
+        """get a list of Thing (friend, belonging) and a links."""
         response = self._get_data_get(url)
         reply = response.json()
         if reply:
@@ -301,17 +278,13 @@ class User:
 
     # working with friends
     def _load_friend_data(self, friend, data):
-        """
-        load data into concrete friend object
-        """
+        """load data into concrete friend object."""
         friend.id = data['id']
         friend.overdue = bool(data['has_overdue'])
         friend._name = data['name']
 
     def get_friends(self):
-        """
-        get a friends list
-        """
+        """get a friends list."""
         url = BASE_URL + URLS['friends']
         response = self._get_data_get(url)
         reply = response.json()
@@ -322,16 +295,14 @@ class User:
                 self._friends[friend.id] = friend
 
     def get_all_friends(self):
-        """
-        get a friends list
-        """
+        """get a all friends list from application database."""
         url = BASE_URL + URLS['friends']
         self._get_all_things(url, self._friends, 'friend')
 
     def get_page_friends(self, page_url=''):
         """
         get only one page with friends list & links to over pages:
-        first, prev, next, last - if they exists
+        first, prev, next, last - if they exists.
         """
         if page_url:
             url = page_url
@@ -340,15 +311,11 @@ class User:
         return self._get_page_things(url, self._friends, 'friend')
 
     def number_friends(self):
-        """
-        get quantity of friends
-        """
+        """get quantity of friends."""
         return len(self._friends)
 
     def add_friend(self, friend):
-        """
-        add new friend
-        """
+        """add new friend."""
         url = BASE_URL + URLS['friends']
         if isinstance(friend, Friend):
             pass
@@ -362,28 +329,22 @@ class User:
             return friend
 
     def friend_by_id(self, friend_id):
-        """
-        get friend from list by friend_id
-        """
+        """get friend from list by friend_id."""
         if not friend_id in self._friends:
             url = f"{BASE_URL}{URLS['friends']}{friend_id}/"
             self._get_thing(url, self._friends, 'friend')
         return self._friends[friend_id]
-        
+
     # working with belongings
     def _load_belonging_data(self, belonging, data):
-        """
-        load data into concrete belonging object
-        """
+        """load data into concrete belonging object."""
         belonging.id = data['id']
         belonging._name = data['name']
         if 'is_borrowed' in data:
             belonging.borrowed = data['is_borrowed']
 
     def get_belongings(self):
-        """
-        get a belongings list
-        """
+        """get a belongings list."""
         url = BASE_URL + URLS['belongings']
         reply = self._get_data_get(url)
         if reply:
@@ -393,16 +354,14 @@ class User:
                 self._belongings[belonging.id] = belonging
 
     def get_all_belongings(self):
-        """
-        get a belongings list
-        """
+        """get a belongings list."""
         url = BASE_URL + URLS['belongings']
         self._get_all_things(url, self._belongings, 'belonging')
 
     def get_page_belongings(self, page_url=''):
         """
         get only one page with belongings list & links to over pages:
-        first, prev, next, last - if they exists
+        first, prev, next, last - if they exists.
         """
         if page_url:
             url = page_url
@@ -411,24 +370,18 @@ class User:
         return self._get_page_things(url, self._belongings, 'belonging')
 
     def number_belongings(self):
-        """
-        get quantity of belongings
-        """
+        """get quantity of belongings."""
         return len(self._belongings)
 
     def belonging_by_id(self, belonging_id):
-        """
-        get belonging from list by belonging_id
-        """
+        """get belonging from list by belonging_id."""
         if not belonging_id in self._belongings:
             url = f"{BASE_URL}{URLS['belongings']}{belonging_id}/"
             self._get_thing(url, self._belongings, 'belonging')
         return self._belongings[belonging_id]
 
     def add_belonging(self, belonging):
-        """
-        add new belonging
-        """
+        """add new belonging."""
         url = BASE_URL + URLS['belongings']
         if isinstance(belonging, Belonging):
             pass
@@ -443,9 +396,7 @@ class User:
 
     # working with borrowings
     def _load_borrow_data(self, borrow, data):
-        """
-        load data to borrow object
-        """
+        """load data to borrow object."""
         friend = self.friend_by_id(int(data['to_who']))
         belonging = self.belonging_by_id(int(data['what']))
         borrow.id = int(data['id'])
@@ -455,9 +406,7 @@ class User:
         borrow.returned = data['returned']
 
     def get_borrowings(self):
-        """
-        get a borrowings list
-        """
+        """get a borrowings list."""
         url = BASE_URL + URLS['borrowings']
         response = self._get_data_get(url)
         reply = response.json()
@@ -468,9 +417,7 @@ class User:
                 self._borrowings[borrow.id] = borrow
 
     def borrow_by_id(self, borrow_id):
-        """
-        get borrow by id from self package borrows
-        """
+        """get borrow by id from self package borrows."""
         if not borrow_id in self._borrowings:
             url = f"{BASE_URL}{URLS['borrowings']}{borrow_id}/"
             self._get_thing(url, self._borrowings, 'borrowing')
@@ -478,10 +425,11 @@ class User:
 
     def borrow_to(self, friend, belonging, when=None):
         """
-        borrow one thing to friend
-        friend : Friend object
-        belonging : Belonging object
-        when : datetime or None, then when = now
+        borrow one thing to friend.
+
+        friend : Friend object.
+        belonging : Belonging object.
+        when : datetime or None, then - when = now.
         """
         url = BASE_URL + URLS['borrowings']
         data = {'what': belonging.id,
@@ -500,8 +448,9 @@ class User:
 
     def get_missing(self):
         """
-        get borrowings which was borrowed
-        return list of borrowings
+        get borrowings which was borrowed.
+
+        return list of borrowings.
         """
         url = BASE_URL + URLS['borrowings']
         params = {'missing': True}
@@ -517,8 +466,9 @@ class User:
 
     def get_overdue(self):
         """
-        get borrowings which was borrowed too long
-        return list of borrowings
+        get borrowings which was borrowed too long.
+
+        return list of borrowings.
         """
         url = BASE_URL + URLS['borrowings']
         params = {'overdue': True}
@@ -533,9 +483,7 @@ class User:
             return borrowings
 
     def friend_borrowings(self, friend):
-        """
-        get all friend's borrowings
-        """
+        """get all friend's borrowings."""
         url = f"{BASE_URL}{URLS['friends']}{friend.id}/borrowings/"
         response = self._get_data_get(url)
         reply = response.json()
@@ -549,9 +497,10 @@ class User:
 
     def borrow_return(self, borrow, when=None):
         """
-        make a notice when a belonging was returned
-        borrow : Borrow object
-        when : datetime object, if None than returned now
+        make a notice when a belonging was returned.
+
+        borrow : Borrow object.
+        when : datetime object, if None than returned now.
         """
         if when is None:
             returned = local_datetime_string(dt.now())
@@ -562,7 +511,7 @@ class User:
         reply = self._get_data_patch(url, data)
         if reply:
             borrow.returned = when
-    
+
     # working with API
     def _get_data_post(self, url, data=None):
         try:
@@ -582,7 +531,7 @@ class User:
         else:
             if response.status_code != 204:
                 return response.json()
-        
+
     def _get_data_patch(self, url, data):
         try:
             if self._token:
@@ -596,9 +545,9 @@ class User:
         except Exception as err:
             print(f'Unexpected error occurred {err}')
         else:
-           return response.json()
+            return response.json()
 
-    def _get_data_get(self, url, param={}):
+    def _get_data_get(self, url, param=None):
         if self._token:
             auth_header = {'Authorization': f'Token {self._token}'}
             try:
@@ -617,4 +566,3 @@ class User:
                 print(f'Unexpected error occurred {err}')
             else:
                 return response
-
