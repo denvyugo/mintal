@@ -111,6 +111,12 @@ class Borrow(Thing):
         self._who = None
         self._returned = None
 
+    def __str__(self):
+        return f'Borrow: {self._what} to {self._who}'
+
+    def __repr__(self):
+        return f'<Borrow object: Borrow.id = {self._id}>'
+
     def load_data(self, data):
         self._user._load_borrow_data(self, data)
 
