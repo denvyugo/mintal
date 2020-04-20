@@ -54,12 +54,20 @@ def convert_datetime(some_datetime):
         print(some_datetime)
     return dt_return
 
-def local_datetime_string(some_datetime):
-    """ make ISO format with local timezone."""
+def local_datetime(some_datetime):
+    """localize to timezone."""
     tz = pytz.timezone(TIMEZONE)
     if some_datetime.tzinfo is None:
         dta = tz.localize(some_datetime)
     else:
         dta = some_datetime.astimezone(tz)
+    return dta
+
+def local_datetime_string(some_datetime):
+    """ make ISO format with local timezone."""
+    dta = local_datetime(some_datetime)
     return dta.isoformat(timespec='microseconds')
 
+def format_datetime_string(some_datetime):
+    """format datetime to string HH:MM DD-MM-YYYY"""
+    return dt.datetime.strftime(some_datetime, '%H:%M %d-%m-%Y')
